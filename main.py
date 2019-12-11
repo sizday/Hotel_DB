@@ -1,13 +1,32 @@
 from tkinter import *
 from PIL import Image, ImageTk
+import pymysql.cursors
 
 
 class Main(Frame):
 
+    def connect(self):
+        self.connection = pymysql.connect(host='localhost',
+                                     user='root',
+                                     password='dionis0799',
+                                     db='qwe',
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        print("connect successful!!")
+
+    def operation(self, sql):
+        print(sql)
+        self.connection.cursor().execute(sql)
+
+    def createDB(self, sql):
+        print(sql)
+        self.connection.cursor().execute("call createDB('{sql}')")
+
     # init
     def __init__(self, parent):
         Frame.__init__(self, parent)
-
+        self.connect()
         self.parent = parent
         self.color = "black"
         self.bg = "white"
@@ -78,19 +97,24 @@ class Main(Frame):
         self.rowconfigure(4, weight=1)
         self.bg_label = Label(self, text="Hostel", font="Arial 48", justify=CENTER)
         self.bg_label.grid(row=0, column=0, columnspan=2)
-        self.new_button = Button(self, width=16, height=2, font="12",
-                            background="white", text="Создать")
-        self.new_button.grid(row=1, column=0, padx=5, pady=10)
+        self.bd_label = Label(self, text="название БД", font="Arial 16", justify=CENTER)
+        self.bd_label.grid(row=1, column=0)
+        self.name_db = StringVar()
+        self.bd_entry = Entry(self, textvariable=self.name_db, font="16", width=15)
+        self.bd_entry.grid(row=1, column=1, padx=10, pady=10)
         self.delete_button = Button(self, width=16, height=2, font="12",
-                               background="white", text="Удалить")
-        self.delete_button.grid(row=1, column=1, padx=5, pady=10)
+                                    background="white", text="Удалить")
+        self.delete_button.grid(row=2, column=1, padx=5, pady=10)
+        self.new_button = Button(self, width=16, height=2, font="12",
+                            background="white", text="Создать", command=self.createDB(self.name_db.get()))
+        self.new_button.grid(row=2, column=0, padx=5, pady=10)
         self.variable = StringVar(self)
         self.variable.set("выберете")
         self.bd_menu = OptionMenu(self, self.variable, "First BD", "Second BD")
-        self.bd_menu.grid(row=2, column=0, padx=5, pady=10)
+        self.bd_menu.grid(row=3, column=0, padx=5, pady=10)
         self.use_button = Button(self, width=16, height=2, font="12", background="white",
                             text="Использовать", command=self.use_bd)
-        self.use_button.grid(row=2, column=1, padx=5, pady=10)
+        self.use_button.grid(row=3, column=1, padx=5, pady=10)
 
     def set_search(self, name):
         self.columnconfigure(2, weight=1)
@@ -117,7 +141,6 @@ class Main(Frame):
         self.search_button = Button(self, width=12, height=2, font="12",
                                  background="white", text="Поиск")
         self.search_button.grid(row=4, column=1, padx=10, pady=10)
-
 
     # delete
     def delete_main(self):

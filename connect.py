@@ -9,15 +9,16 @@ connection = pymysql.connect(host='localhost',
 
 print("connect successful!!")
 
-try:
-    with connection.cursor() as cursor:
 
-        sql = "source hostel.txt"
-        cursor.execute(sql)
-        print("cursor.description: ", cursor.description)
-        print()
-        for row in cursor:
-            print(row)
+def operation(sql):
+    try:
+        with connection.cursor() as cursor:
 
-finally:
-    connection.close()
+            cursor.execute(sql)
+            print("cursor.description: ", cursor.description)
+            print()
+            for row in cursor:
+                print(row)
+
+    finally:
+        connection.close()
