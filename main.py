@@ -1,4 +1,5 @@
 from tkinter import *
+from tkinter import ttk
 from PIL import Image, ImageTk
 import pymysql.cursors
 
@@ -23,11 +24,16 @@ class Main(Frame):
                 print("{0}".format(row[0]))
 
     def create_db(self):
-        self.connection.cursor().execute(f"call create_db('{self.name_db.get()}')")
+        self.connection.cursor().execute(f"call CreateDB('{self.name_db.get()}')")
+        self.list_db()
+        self.bd_menu = OptionMenu(self, self.choice_db, *self.db)
+        self.bd_menu.grid(row=3, column=0, padx=5, pady=10)
 
     def delete_db(self):
-        self.operation(f"use {self.name_db.get()}")
-        self.connection.cursor().execute("call deleteAll()")
+        self.connection.cursor().execute(f"call dropDB('{self.name_db.get()}')")
+        self.list_db()
+        self.bd_menu = OptionMenu(self, self.choice_db, *self.db)
+        self.bd_menu.grid(row=3, column=0, padx=5, pady=10)
         
     def list_db(self):
         self.db = []
@@ -36,7 +42,7 @@ class Main(Frame):
             rows = cursor.fetchall()
             for row in rows:
                 if row[0] != 'information_schema' and row[0] != 'mysql' and \
-                        row[0] != 'performance_schema' and row[0] != 'practice1':
+                        row[0] != 'performance_schema' and row[0] != 'practice1' and row[0] != "qwe":
                     self.db.append(row[0])
         print(self.db)
 
@@ -50,6 +56,15 @@ class Main(Frame):
                         row[0] != 'performance_schema' and row[0] != 'practice1':
                     self.tb.append(row[0])
         print(self.tb)
+
+    def list_columns(self, table):
+        self.cl = []
+        with self.connection.cursor() as cursor:
+            cursor.execute(f"show columns from {table}")
+            rows = cursor.fetchall()
+            for row in rows:
+                self.cl.append(row[0])
+        print(self.cl)
 
     def column_answer_check(self):
         if self.search.get() == "roomtype":
@@ -100,19 +115,48 @@ class Main(Frame):
             self.column5.config(text="None")
             self.column6.config(text="None")
 
-    def search(self):
-        if self.search.get() == "roomtype":
-            self.connection.cursor().execute(f"call findTable1({self.search_message})")
-        elif self.search.get() == "room":
-            self.connection.cursor().execute(f"call findTable2({self.search_message})")
-        elif self.search.get() == "reservation":
-            self.connection.cursor().execute(f"call findTable3('{self.search_message}')")
-        elif self.search.get() == "client":
-            self.connection.cursor().execute(f"call findTable4('{self.search_message}')")
-        elif self.search.get() == "stat":
-            self.connection.cursor().execute(f"call findTable5('{self.search_message}')")
+    def table_answer_check2(self):
+        if self.select_var.get() == "roomtype":
+            self.list_columns("roomtype")
+        elif self.select_var.get() == "room":
+            self.list_columns("room")
+        elif self.select_var.get() == "reservation":
+            self.list_columns("reservation")
+        elif self.select_var.get() == "client":
+            self.list_columns("client")
         else:
-            print("ошибка")
+            self.list_columns("stat")
+        self.tree.config(column=self.cl)
+        for i in range(len(self.cl)):
+            self.tree.heading(self.cl[i], text=self.cl[i])
+            self.tree.column(self.cl[i], width=int(385/len(self.cl)))
+        self.select()
+
+    def search_fun(self):
+        sql = ""
+        with self.connection.cursor() as cursor:
+            if self.search.get() == "roomtype":
+                sql = f"call findTable1({self.search_message.get()})"
+                cursor.execute(sql)
+            elif self.search.get() == "room":
+                sql = f"call findTable2({self.search_message.get()})"
+                cursor.execute(sql)
+            elif self.search.get() == "reservation":
+                sql = f"call findTable3('{self.search_message.get()}')"
+                cursor.execute(sql)
+            elif self.search.get() == "client":
+                sql = f"call findTable4('{self.search_message.get()}')"
+                cursor.execute(sql)
+            elif self.search.get() == "stat":
+                sql = f"call findTable5('{self.search_message.get()}')"
+                cursor.execute(sql)
+            else:
+                print("ошибка")
+            rows = cursor.fetchall()
+            print(sql)
+            for row in rows:
+                self.result_list.insert(0, row)
+                print(row)
 
     def delete_type(self):
         if self.type_var.get() == "все таблицы":
@@ -253,6 +297,23 @@ class Main(Frame):
         print(sql)
         self.connection.commit()
 
+    def select(self):
+        with self.connection.cursor() as cursor:
+            if self.select_var.get() == "roomtype":
+                cursor.execute("call showTable1")
+            elif self.select_var.get() == "room":
+                cursor.execute("call showTable2")
+            elif self.select_var.get() == "reservation":
+                cursor.execute("call showTable3")
+            elif self.select_var.get() == "client":
+                cursor.execute("call showTable4")
+            else:
+                cursor.execute("call showTable5")
+            rows = cursor.fetchall()
+            for row in rows:
+                print(row)
+                self.tree.insert('', 'end', values=row)
+
     def close_app(self):
         if self.window == "option":
             self.delete_option()
@@ -269,7 +330,20 @@ class Main(Frame):
         elif self.window == "delete":
             self.delete_delete()
             self.init_option()
+        elif self.window == "select":
+            self.delete_select()
+            self.init_option()
 
+    def execute_file_scripts(self):
+        fd = open("hostel.txt", 'r')
+        sqlFile = fd.read()
+        fd.close()
+        sqlCommands = sqlFile.split('//')
+
+        cursor = self.connection.cursor()
+        for command in sqlCommands:
+            if command.strip() != '':
+                    cursor.execute(command)
 
     # init
     def __init__(self, parent):
@@ -326,11 +400,19 @@ class Main(Frame):
         self.window = "update"
         self.set_update(name)
 
+    def init_select(self):
+        self.master.title("Select")
+        self.pack(fill=BOTH, expand=1)
+        name = self.choice_db.get()
+        self.window = "select"
+        self.set_select(name)
+
     # use
     def use_bd(self):
         self.delete_main()
         self.init_option()
         self.operation(f"use {self.choice_db.get()}")
+        self.execute_file_scripts()
         self.operation("call createTable1")
         self.operation("call createTable2")
         self.operation("call createTable3")
@@ -357,6 +439,11 @@ class Main(Frame):
         self.list_tables()
         self.init_update()
 
+    def use_select(self):
+        self.delete_option()
+        self.list_tables()
+        self.init_select()
+
     # set
     def set_option(self, name):
         self.columnconfigure(2, weight=1)
@@ -367,7 +454,7 @@ class Main(Frame):
         self.name_label = Label(self, text=name, font="Arial 48", justify=CENTER)
         self.name_label.grid(row=0, column=0, columnspan=2)
         self.output_button = Button(self, width=16, height=1, font="12",
-                               background="white", text="вывод")
+                               background="white", text="вывод", command=self.use_select)
         self.output_button.grid(row=2, column=1, padx=5, pady=10)
         self.delete_button = Button(self, width=16, height=1, font="12",
                                background="white", text="удалить", command=self.use_delete)
@@ -412,7 +499,7 @@ class Main(Frame):
                                     background="white", text="Удалить", command=self.delete_db)
         self.delete_button.grid(row=2, column=1, padx=5, pady=10)
         self.new_button = Button(self, width=16, height=2, font="12",
-                            background="white", text="Создать")
+                            background="white", text="Создать", command=self.create_db)
         self.new_button.grid(row=2, column=0, padx=5, pady=10)
         self.choice_db = StringVar(self)
         self.choice_db.set("выберете")
@@ -449,8 +536,10 @@ class Main(Frame):
         self.text_entry = Entry(self, textvariable=self.search_message)
         self.text_entry.grid(row=4, column=1, padx=10, pady=10)
         self.search_button = Button(self, width=12, height=2, font="12", background="white",
-                                    text="Поиск", command=self.search)
+                                    text="Поиск", command=self.search_fun)
         self.search_button.grid(row=4, column=2, padx=10, pady=10)
+        self.result_list = Listbox(width=40, height=8, font="Arial 12")
+        self.result_list.pack()
 
     def set_add(self, name):
         self.columnconfigure(3, weight=1)
@@ -593,6 +682,26 @@ class Main(Frame):
                                  text="Обновить", command=self.update_func)
         self.add_button.grid(row=7, column=2, padx=10, pady=10, rowspan=2)
 
+    def set_select(self, name):
+        self.columnconfigure(3, weight=1)
+        self.rowconfigure(6, weight=1)
+        self.back_button = Button(self, font="Arial 10", background="white", text="назад",
+                                  justify=RIGHT, command=self.close_app)
+        self.back_button.grid(row=1, column=2, padx=5, sticky=E)
+        self.name_label = Label(self, text="Select in " + name, font="Arial 24", justify=CENTER)
+        self.name_label.grid(row=0, column=0, columnspan=3)
+        self.table_label = Label(self, text="Таблица", font="Arial 14", justify=CENTER)
+        self.table_label.grid(row=2, column=0)
+        self.select_var = StringVar(self)
+        self.select_var.set("выберете")
+        self.table_menu = OptionMenu(self, self.select_var, *self.tb)
+        self.table_menu.grid(row=2, column=1, padx=10, pady=10)
+        self.check_button = Button(self, width=8, height=1, font="12", background="white",
+                                   text="вывести", command=self.table_answer_check2)
+        self.check_button.grid(row=2, column=2, padx=10, pady=10)
+        self.tree = ttk.Treeview(self, columns=('', '', ''), height=15, show='headings')
+        self.tree.grid(row=3, column=0, padx=10, pady=10, columnspan=3)
+
     # delete
     def delete_main(self):
         self.bg_label.destroy()
@@ -627,6 +736,7 @@ class Main(Frame):
         self.text_entry.destroy()
         self.search_button.destroy()
         self.back_button.destroy()
+        self.result_list.destroy()
 
     def delete_add(self):
         self.name_label.destroy()
@@ -682,6 +792,14 @@ class Main(Frame):
         self.entry6.destroy()
         self.add_button.destroy()
         self.back_button.destroy()
+
+    def delete_select(self):
+        self.back_button.destroy()
+        self.name_label.destroy()
+        self.table_label.destroy()
+        self.table_menu.destroy()
+        self.check_button.destroy()
+        self.tree.destroy()
 
 
 def main():
