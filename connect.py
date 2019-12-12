@@ -4,7 +4,7 @@ connection = pymysql.connect(host='localhost',
                              user='root',
                              password='dionis0799',
                              db='qwe',
-                             charset='utf8mb4',
+                             charset='utf8',
                              cursorclass=pymysql.cursors.DictCursor)
 
 print("connect successful!!")
