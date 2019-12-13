@@ -369,7 +369,6 @@ class Main(Frame):
         self.pack(fill=BOTH, expand=1)
         name = self.choice_db.get()
         self.window = "option"
-
         self.set_option(name)
 
     def init_search(self):
@@ -415,9 +414,9 @@ class Main(Frame):
         self.execute_file_scripts()
         self.operation("call createTable1")
         self.operation("call createTable2")
-        self.operation("call createTable3")
-        self.operation("call createTable4")
         self.operation("call createTable5")
+        self.operation("call createTable4")
+        self.operation("call createTable3")
 
     def use_search(self):
         self.delete_option()
@@ -705,12 +704,13 @@ class Main(Frame):
     # delete
     def delete_main(self):
         self.bg_label.destroy()
+        self.bd_label.destroy()
         self.new_button.destroy()
         self.delete_button.destroy()
         self.bd_menu.destroy()
         self.use_button.destroy()
-        self.bd_label.destroy()
         self.bd_entry.destroy()
+        self.bd_menu.destroy()
 
     def delete_option(self):
         self.name_label.destroy()
